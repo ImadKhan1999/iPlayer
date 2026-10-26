@@ -12,6 +12,7 @@ import com.imadlabs.iplayer.update.UpdateRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.map
 
 /** Manual dependency container; one instance per process, created by [IPlayerApp]. */
 class AppContainer(context: Context) {
@@ -21,7 +22,7 @@ class AppContainer(context: Context) {
     val database: AppDatabase by lazy { AppDatabase.create(appContext) }
     val settings: SettingsRepository by lazy { SettingsRepository(appContext, appScope) }
     val appState: AppStateRepository by lazy { AppStateRepository(appContext) }
-    val library: LibraryRepository by lazy { LibraryRepository(MediaStoreSource(appContext), database, appScope) }
+    val library: LibraryRepository by lazy { LibraryRepository(MediaStoreSource(appContext), settings.state.map { it.hideVoiceNotes }, database, appScope) }
     val network: NetworkRepository by lazy { NetworkRepository(database) }
     val playback: PlaybackManager by lazy { PlaybackManager(appContext, settings, database, appScope, network) }
     val updates: UpdateRepository by lazy { UpdateRepository(appContext, appState, settings, appScope) }

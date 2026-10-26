@@ -116,6 +116,7 @@ class SettingsRepository(context: Context, scope: CoroutineScope) {
         val animations = booleanPreferencesKey("animations")
         val density = stringPreferencesKey("density")
         val history = booleanPreferencesKey("history")
+        val hideVoiceNotes = booleanPreferencesKey("hide_voice_notes")
         val networkCaching = intPreferencesKey("network_caching")
         val autoUpdate = booleanPreferencesKey("auto_update")
     }
@@ -188,6 +189,7 @@ class SettingsRepository(context: Context, scope: CoroutineScope) {
             animations = this[K.animations] ?: d.animations,
             density = enum(K.density, d.density),
             historyEnabled = this[K.history] ?: d.historyEnabled,
+            hideVoiceNotes = this[K.hideVoiceNotes] ?: d.hideVoiceNotes,
             networkCachingMs = this[K.networkCaching] ?: d.networkCachingMs,
             autoUpdateCheck = this[K.autoUpdate] ?: d.autoUpdateCheck,
         )
@@ -254,6 +256,7 @@ class SettingsRepository(context: Context, scope: CoroutineScope) {
         this[K.animations] = s.animations
         this[K.density] = s.density.name
         this[K.history] = s.historyEnabled
+        this[K.hideVoiceNotes] = s.hideVoiceNotes
         this[K.networkCaching] = s.networkCachingMs
         this[K.autoUpdate] = s.autoUpdateCheck
     }

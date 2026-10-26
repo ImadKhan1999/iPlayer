@@ -122,6 +122,7 @@ data class AppSettings(
     val musicSort: SortOrder = SortOrder.NameAsc,
     val showThumbnails: Boolean = true,
     val groupEpisodes: Boolean = true,
+    val hideVoiceNotes: Boolean = true,
     // Appearance
     val themeMode: ThemeMode = ThemeMode.Dark,
     val accent: AccentColor = AccentColor.CyberMint,

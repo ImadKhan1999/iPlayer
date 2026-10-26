@@ -5,6 +5,7 @@ import com.imadlabs.iplayer.data.media.LrcParser
 import com.imadlabs.iplayer.data.media.Lyrics
 import com.imadlabs.iplayer.data.media.MediaFormats
 import com.imadlabs.iplayer.data.media.SubtitleMatcher
+import com.imadlabs.iplayer.data.media.VoiceNotes
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -59,5 +60,15 @@ class MediaParsingTest {
     @Test fun lrcPlainAndEmpty() {
         assertEquals(Lyrics.Plain("Just words\nMore words"), LrcParser.parse("[ar:Someone]\nJust words\nMore words"))
         assertNull(LrcParser.parse("   "))
+    }
+
+    @Test fun voiceNoteFolders() {
+        val root = "/storage/emulated/0"
+        assertTrue(VoiceNotes.isVoiceNoteFolder("$root/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Voice Notes/202643"))
+        assertTrue(VoiceNotes.isVoiceNoteFolder("$root/Android/media/com.whatsapp.w4b/WhatsApp Business/Media/WhatsApp Voice Notes/202643"))
+        assertTrue(VoiceNotes.isVoiceNoteFolder("$root/WhatsApp Business/Media/WhatsApp Business Voice Notes/Sent"))
+        assertTrue(VoiceNotes.isVoiceNoteFolder("$root/Music/WA Call Recordings/WhatsApp"))
+        assertFalse(VoiceNotes.isVoiceNoteFolder("$root/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Audio"))
+        assertFalse(VoiceNotes.isVoiceNoteFolder("$root/Music/Voice Notes Album"))
     }
 }

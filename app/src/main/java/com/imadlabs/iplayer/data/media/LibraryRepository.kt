@@ -6,6 +6,7 @@ import com.imadlabs.iplayer.data.db.ExcludedFolder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -28,10 +29,19 @@ data class LibrarySnapshot(
     val music: List<AudioItem> get() = audio.filter { it.isMusic || !it.isRecording }
 }
 
+/** Folders where messaging apps keep voice messages and call recordings rather than music. */
+object VoiceNotes {
+    private val segments = setOf("whatsapp voice notes", "whatsapp business voice notes", "wa call recordings")
+
+    fun isVoiceNoteFolder(folder: String): Boolean =
+        folder.split('/').any { it.lowercase() in segments }
+}
+
 /** Library facade: MediaStore index + the user's exclusions, refreshed only on MediaStore changes. */
 @OptIn(FlowPreview::class)
 class LibraryRepository(
     private val source: MediaStoreSource,
+    private val hideVoiceNotes: Flow<Boolean>,
     private val db: AppDatabase,
     private val scope: CoroutineScope,
 ) {
@@ -47,11 +57,12 @@ class LibraryRepository(
     val overrides: StateFlow<List<ClassificationOverride>> =
         db.overrides().all().stateIn(scope, SharingStarted.Eagerly, emptyList())
 
-    val library: StateFlow<LibrarySnapshot> = combine(raw, excludedFolders) { snap, excluded ->
-        if (excluded.isEmpty()) snap else {
+    val library: StateFlow<LibrarySnapshot> = combine(raw, excludedFolders, hideVoiceNotes) { snap, excluded, noVoice ->
+        if (excluded.isEmpty() && !noVoice) snap else {
             val paths = excluded.map { it.path.trimEnd('/') }
             fun hidden(folder: String) = paths.any { folder == it || folder.startsWith("$it/") }
-            snap.copy(videos = snap.videos.filterNot { hidden(it.folder) }, audio = snap.audio.filterNot { hidden(it.folder) })
+            snap.copy(videos = snap.videos.filterNot { hidden(it.folder) },
+                audio = snap.audio.filterNot { hidden(it.folder) || (noVoice && VoiceNotes.isVoiceNoteFolder(it.folder)) })
         }
     }.stateIn(scope, SharingStarted.Eagerly, LibrarySnapshot())
 

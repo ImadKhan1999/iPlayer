@@ -72,5 +72,6 @@ The `play` flavor never downloads APKs; "Update" opens the store listing.
 3. Configure repository secrets once: `IPLAYER_KEYSTORE_BASE64` (base64 of the .jks),
    `IPLAYER_KEYSTORE_PASSWORD`, `IPLAYER_KEY_ALIAS`, `IPLAYER_KEY_PASSWORD`.
    Keep the keystore safe: every future update must be signed with the same key.
-4. Push tag `v<versionName>`. The workflow refuses to run without signing secrets or if the tag
+4. Push tag `v<versionName>`, or create branch `release/v<versionName>` (the GitHub web UI can do
+   this), in which case the workflow creates the tag on that commit. The workflow refuses to run without signing secrets or if the tag
    doesn't match `versionName`, then publishes the APKs, `SHA256SUMS.txt` and `update-manifest.json`.

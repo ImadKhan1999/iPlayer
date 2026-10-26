@@ -35,14 +35,6 @@ class VlcSessionPlayer(
 
     private val artwork = HashMap<String, ByteArray?>()
     private var artworkJob: Job? = null
-    // Position is pulled through PositionSupplier, so only structural changes invalidate the state.
-    private val collector: Job = manager.state.map { it.copy(positionMs = 0, bufferingPercent = 0f) }
-        .distinctUntilChanged()
-        .onEach { s ->
-            s.item?.let { loadArtwork(it) }
-            invalidateState()
-        }.launchIn(scope)
-
     private val commands = Player.Commands.Builder().addAll(
         COMMAND_PLAY_PAUSE, COMMAND_PREPARE, COMMAND_STOP, COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM,
         COMMAND_SEEK_TO_NEXT_MEDIA_ITEM, COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM, COMMAND_SEEK_TO_NEXT,
@@ -50,6 +42,16 @@ class VlcSessionPlayer(
         COMMAND_SET_SPEED_AND_PITCH, COMMAND_SET_SHUFFLE_MODE, COMMAND_SET_REPEAT_MODE,
         COMMAND_GET_CURRENT_MEDIA_ITEM, COMMAND_GET_TIMELINE, COMMAND_GET_METADATA, COMMAND_RELEASE,
     ).build()
+
+    // Declared after every property getState() reads: with a Main.immediate scope the first
+    // emission runs synchronously here and calls invalidateState() -> getState().
+    // Position is pulled through PositionSupplier, so only structural changes invalidate the state.
+    private val collector: Job = manager.state.map { it.copy(positionMs = 0, bufferingPercent = 0f) }
+        .distinctUntilChanged()
+        .onEach { s ->
+            s.item?.let { loadArtwork(it) }
+            invalidateState()
+        }.launchIn(scope)
 
     override fun getState(): State {
         val s = manager.state.value

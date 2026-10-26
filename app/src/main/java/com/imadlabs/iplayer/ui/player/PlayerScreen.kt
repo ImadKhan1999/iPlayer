@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -175,7 +176,9 @@ fun PlayerScreen(
         AndroidView(
             factory = { videoLayout.also { (it.parent as? ViewGroup)?.removeView(it) } },
             update = { v -> applyAdjust(v, adjust, textureOutput) },
-            modifier = Modifier.fillMaxSize(),
+            // Outside full screen the picture sits between the status and navigation bars.
+            modifier = Modifier.fillMaxSize()
+                .then(if ((context as? PlayerActivity)?.fullscreen == true || inPip) Modifier else Modifier.windowInsetsPadding(WindowInsets.systemBars)),
         )
 
         if (!inPip) {

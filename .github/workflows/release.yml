@@ -44,7 +44,7 @@ jobs:
           if [ "v$name" != "$TAG" ]; then echo "::error::Tag $TAG does not match versionName $name"; exit 1; fi
           echo "name=$name" >> "$GITHUB_OUTPUT"; echo "code=$code" >> "$GITHUB_OUTPUT"
       - name: Unit tests
-        run: ./gradlew --no-daemon testDirectReleaseUnitTest
+        run: ./gradlew --no-daemon testDirectDebugUnitTest
       - name: Build signed APKs
         env:
           IPLAYER_KEYSTORE_FILE: ${{ runner.temp }}/iplayer.jks

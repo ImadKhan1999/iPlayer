@@ -43,6 +43,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.imadlabs.iplayer.BuildConfig
 import com.imadlabs.iplayer.R
@@ -80,6 +82,12 @@ fun StartupDialogsHost() {
             SessionFlags.welcomePending = show
             welcomePending = show
         }
+    }
+
+    // A fresh check (each time the app is opened) brings a "Later"-dismissed update back.
+    val checkedAt = (update as? UpdateState.Available)?.checkedAt
+    LaunchedEffect(checkedAt) {
+        if (checkedAt != null) dismissed = dismissed - StartupDialog.OptionalUpdate - StartupDialog.MandatoryUpdate
     }
 
     val playbackActive = player.playWhenReady && player.item?.isVideo == true
@@ -147,6 +155,7 @@ fun UpdateDialog(
     val scope = rememberCoroutineScope()
     val updater = remember { ApkUpdater(context) }
     var status by remember { mutableStateOf<DownloadStatus?>(null) }
+    var awaitingInstallPermission by remember { mutableStateOf(false) }
     val apk = remember(release) { container.updates.apkFor(release) }
 
     fun openReleasePage() {
@@ -165,7 +174,8 @@ fun UpdateDialog(
         }
         if (apk == null) { openReleasePage(); return }
         if (!updater.canRequestInstall()) {
-            context.toast("Allow iPlayer to install updates, then tap Update again.")
+            context.toast("Allow iPlayer to install updates, then come back to continue.")
+            awaitingInstallPermission = true
             context.startActivity(updater.installPermissionIntent())
             return
         }
@@ -174,6 +184,14 @@ fun UpdateDialog(
                 status = s
                 if (s is DownloadStatus.Ready) updater.install(s.file)
             }
+        }
+    }
+
+    // Continue the update automatically once the user returns having allowed installs.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        if (awaitingInstallPermission && updater.canRequestInstall()) {
+            awaitingInstallPermission = false
+            startUpdate()
         }
     }
 

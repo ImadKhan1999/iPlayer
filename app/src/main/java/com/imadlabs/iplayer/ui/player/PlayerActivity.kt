@@ -81,7 +81,8 @@ class PlayerActivity : ComponentActivity() {
                 layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
             }
         }
-        hideSystemBars()
+        fullscreen = savedInstanceState?.getBoolean(KEY_FULLSCREEN) ?: false
+        applySystemBars()
         videoLayout = VLCVideoLayout(this)
         ContextCompat.registerReceiver(this, pipReceiver, IntentFilter(ACTION_PIP_CONTROL), ContextCompat.RECEIVER_NOT_EXPORTED)
 
@@ -187,16 +188,30 @@ class PlayerActivity : ComponentActivity() {
         finish()
     }
 
-    private fun hideSystemBars() {
-        WindowInsetsControllerCompat(window, window.decorView).apply {
-            hide(WindowInsetsCompat.Type.systemBars())
+    /** Whether the user switched to full screen (system bars hidden). Off by default. */
+    var fullscreen by mutableStateOf(false)
+        private set
+
+    fun toggleFullscreen() {
+        fullscreen = !fullscreen
+        applySystemBars()
+    }
+
+    private fun applySystemBars() {
+        WindowCompat.getInsetsController(window, window.decorView).apply {
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            if (fullscreen) hide(WindowInsetsCompat.Type.systemBars()) else show(WindowInsetsCompat.Type.systemBars())
         }
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) hideSystemBars()
+        if (hasFocus) applySystemBars()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(KEY_FULLSCREEN, fullscreen)
     }
 
     private var userOrientationOverride: Int? = null
@@ -277,6 +292,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     companion object {
+        private const val KEY_FULLSCREEN = "fullscreen"
         const val ACTION_RESUME = "com.imadlabs.iplayer.RESUME_PLAYER"
         private const val ACTION_PIP_CONTROL = "com.imadlabs.iplayer.PIP_CONTROL"
         private const val EXTRA_CONTROL = "control"

@@ -305,6 +305,9 @@ private fun LibrarySettings(s: AppSettings, set: ((AppSettings) -> AppSettings) 
         SwitchRow("Hide WhatsApp voice notes", "Leaves voice messages and WhatsApp call recordings out of the music library. Audio files shared in chats still appear.", s.hideVoiceNotes) { v ->
             set { it.copy(hideVoiceNotes = v) }
         }
+        SwitchRow("Hide short audio", "Leaves clips under 30 seconds, such as chat audio and ringtones, out of the music library.", s.hideShortAudio) { v ->
+            set { it.copy(hideShortAudio = v) }
+        }
         Header("Hidden folders")
         if (excluded.isEmpty()) Text("No hidden folders. Hide one from a folder's screen or a video's menu. Hiding only removes it from iPlayer's library; it is not encrypted or protected.",
             Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

@@ -123,6 +123,7 @@ data class AppSettings(
     val showThumbnails: Boolean = true,
     val groupEpisodes: Boolean = true,
     val hideVoiceNotes: Boolean = true,
+    val hideShortAudio: Boolean = true,
     // Appearance
     val themeMode: ThemeMode = ThemeMode.Dark,
     val accent: AccentColor = AccentColor.CyberMint,

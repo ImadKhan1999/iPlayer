@@ -29,6 +29,18 @@ data class LibrarySnapshot(
     val music: List<AudioItem> get() = audio.filter { it.isMusic || !it.isRecording }
 }
 
+/** Library-wide audio filters from Settings › Library. */
+data class AudioFilter(val hideVoiceNotes: Boolean, val hideShortAudio: Boolean) {
+    fun hides(folder: String, durationMs: Long): Boolean =
+        (hideVoiceNotes && VoiceNotes.isVoiceNoteFolder(folder)) ||
+            (hideShortAudio && durationMs in 1 until SHORT_AUDIO_MS)
+
+    companion object {
+        /** Clips under this length (ringtones, chat audio, notification sounds) are hidden. Unknown length is kept. */
+        const val SHORT_AUDIO_MS = 30_000L
+    }
+}
+
 /** Folders where messaging apps keep voice messages and call recordings rather than music. */
 object VoiceNotes {
     private val segments = setOf("whatsapp voice notes", "whatsapp business voice notes", "wa call recordings")
@@ -41,7 +53,7 @@ object VoiceNotes {
 @OptIn(FlowPreview::class)
 class LibraryRepository(
     private val source: MediaStoreSource,
-    private val hideVoiceNotes: Flow<Boolean>,
+    private val audioFilter: Flow<AudioFilter>,
     private val db: AppDatabase,
     private val scope: CoroutineScope,
 ) {
@@ -57,13 +69,11 @@ class LibraryRepository(
     val overrides: StateFlow<List<ClassificationOverride>> =
         db.overrides().all().stateIn(scope, SharingStarted.Eagerly, emptyList())
 
-    val library: StateFlow<LibrarySnapshot> = combine(raw, excludedFolders, hideVoiceNotes) { snap, excluded, noVoice ->
-        if (excluded.isEmpty() && !noVoice) snap else {
-            val paths = excluded.map { it.path.trimEnd('/') }
-            fun hidden(folder: String) = paths.any { folder == it || folder.startsWith("$it/") }
-            snap.copy(videos = snap.videos.filterNot { hidden(it.folder) },
-                audio = snap.audio.filterNot { hidden(it.folder) || (noVoice && VoiceNotes.isVoiceNoteFolder(it.folder)) })
-        }
+    val library: StateFlow<LibrarySnapshot> = combine(raw, excludedFolders, audioFilter) { snap, excluded, filter ->
+        val paths = excluded.map { it.path.trimEnd('/') }
+        fun hidden(folder: String) = paths.any { folder == it || folder.startsWith("$it/") }
+        snap.copy(videos = snap.videos.filterNot { hidden(it.folder) },
+            audio = snap.audio.filterNot { hidden(it.folder) || filter.hides(it.folder, it.durationMs) })
     }.stateIn(scope, SharingStarted.Eagerly, LibrarySnapshot())
 
     val albums: StateFlow<List<Album>> = library.map { lib ->

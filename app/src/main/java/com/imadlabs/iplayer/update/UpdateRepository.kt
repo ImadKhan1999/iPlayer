@@ -21,7 +21,7 @@ import java.net.HttpURLConnection
 import java.net.SocketTimeoutException
 import java.net.URL
 import java.net.UnknownHostException
-import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 
 sealed interface UpdateState {
     data object Idle : UpdateState
@@ -44,7 +44,7 @@ class UpdateRepository(
 ) {
     private val _state = MutableStateFlow<UpdateState>(UpdateState.Idle)
     val state: StateFlow<UpdateState> = _state.asStateFlow()
-    private val startupCheckDone = AtomicBoolean(false)
+    private val lastOpenCheck = AtomicLong(0)
 
     val installedVersionCode: Long by lazy {
         val info = context.packageManager.getPackageInfo(context.packageName, 0)
@@ -55,24 +55,24 @@ class UpdateRepository(
         context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: BuildConfig.VERSION_NAME
     }
 
-    /** Runs at most once per process launch, in the background, and never shows offline errors. */
-    fun checkOnStartup() {
-        if (!startupCheckDone.compareAndSet(false, true)) return
+    /**
+     * Called each time the app comes to the foreground. Always asks the server (the cached manifest
+     * is only a fallback when offline); a short gap avoids repeat requests on quick app switches.
+     */
+    fun checkOnOpen() {
+        val now = System.currentTimeMillis()
+        val last = lastOpenCheck.get()
+        if (now - last < OPEN_RECHECK_MS || !lastOpenCheck.compareAndSet(last, now)) return
         scope.launch {
             if (!settings.snapshot().autoUpdateCheck) return@launch
-            val cached = appState.lastUpdateCheck.first()
-            // Use the cached result when the last successful check is recent, avoiding needless traffic.
-            if (cached.manifestJson != null && System.currentTimeMillis() - cached.checkedAt < CACHE_MS) {
-                evaluate(cached.manifestJson, cached.checkedAt, fromCache = true)
-                return@launch
-            }
             check(userInitiated = false)
         }
     }
 
     suspend fun check(userInitiated: Boolean) {
         if (_state.value is UpdateState.Checking) return
-        _state.value = UpdateState.Checking
+        // A background re-check leaves an open update popup (and any download in it) in place.
+        if (userInitiated || _state.value !is UpdateState.Available) _state.value = UpdateState.Checking
         val result = withContext(Dispatchers.IO) { fetch(manifestUrl) }
         val now = System.currentTimeMillis()
         result.fold(
@@ -167,7 +167,7 @@ class UpdateRepository(
     class HttpStatusException(val code: Int) : IOException("HTTP $code")
 
     companion object {
-        const val CACHE_MS = 60 * 60 * 1000L
+        const val OPEN_RECHECK_MS = 2 * 60 * 1000L
         const val MAX_MANIFEST_BYTES = 64 * 1024
         /** Release assets are served from GitHub; redirects are only followed within these hosts. */
         val TRUSTED_HOSTS = setOf("github.com", "githubusercontent.com", "imadkhan1999.github.io")

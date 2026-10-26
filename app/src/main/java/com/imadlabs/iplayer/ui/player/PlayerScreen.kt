@@ -42,6 +42,8 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.LockOpen
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.Fullscreen
+import androidx.compose.material.icons.rounded.FullscreenExit
 import androidx.compose.material.icons.rounded.PictureInPictureAlt
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Replay10
@@ -313,6 +315,8 @@ fun PlayerScreen(
                         onLock = { locked = true; poke(); show("Locked") },
                         onPip = onEnterPip.takeIf { pipSupported },
                         onRotate = { (context as? PlayerActivity)?.toggleOrientation(); poke() },
+                        fullscreen = (context as? PlayerActivity)?.fullscreen == true,
+                        onFullscreen = { (context as? PlayerActivity)?.toggleFullscreen(); poke() },
                         onInteract = ::poke,
                         seekStepMs = seekStepMs,
                         showRemaining = settings.showRemainingTime,
@@ -338,6 +342,8 @@ private fun Controls(
     onLock: () -> Unit,
     onPip: (() -> Unit)?,
     onRotate: () -> Unit,
+    fullscreen: Boolean,
+    onFullscreen: () -> Unit,
     onInteract: () -> Unit,
     seekStepMs: Long,
     showRemaining: Boolean,
@@ -401,6 +407,10 @@ private fun Controls(
                 if (s.speed != 1f) Text(Formatters.speed(s.speed), color = Color.White, style = MonoStyle)
                 IconButton(onClick = { onSheet(PlayerSheet.Tracks) }) { Icon(Icons.Rounded.Audiotrack, "Audio track", tint = Color.White) }
                 IconButton(onClick = onRotate) { Icon(Icons.Rounded.ScreenRotation, "Rotate screen", tint = Color.White) }
+                IconButton(onClick = onFullscreen) {
+                    Icon(if (fullscreen) Icons.Rounded.FullscreenExit else Icons.Rounded.Fullscreen,
+                        if (fullscreen) "Exit full screen" else "Full screen", tint = Color.White)
+                }
                 if (onPip != null) IconButton(onClick = onPip) { Icon(Icons.Rounded.PictureInPictureAlt, "Picture-in-picture", tint = Color.White) }
             }
         }

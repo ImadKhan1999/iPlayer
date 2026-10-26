@@ -25,7 +25,6 @@ class MainActivity : ComponentActivity() {
         requestHighestRefreshRate()
         val container = (application as IPlayerApp).container
         handleIntent(intent)
-        container.updates.checkOnStartup()
         container.playback.restoreQueue()
         setContent {
             val settings by container.settings.state.collectAsStateWithLifecycle()
@@ -35,6 +34,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        (application as IPlayerApp).container.updates.checkOnOpen()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -53,8 +57,10 @@ class MainActivity : ComponentActivity() {
         val best = display.supportedModes
             .filter { it.physicalWidth == current.physicalWidth && it.physicalHeight == current.physicalHeight }
             .maxByOrNull { it.refreshRate } ?: return
-        if (best.modeId != window.attributes.preferredDisplayModeId) {
-            window.attributes = window.attributes.also { it.preferredDisplayModeId = best.modeId }
+        // Some builds only honour the refresh-rate hint, so set both.
+        window.attributes = window.attributes.also {
+            it.preferredDisplayModeId = best.modeId
+            it.preferredRefreshRate = best.refreshRate
         }
     }
 

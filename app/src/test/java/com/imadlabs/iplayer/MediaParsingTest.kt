@@ -1,5 +1,6 @@
 package com.imadlabs.iplayer
 
+import com.imadlabs.iplayer.data.media.AudioFilter
 import com.imadlabs.iplayer.data.media.EpisodeParser
 import com.imadlabs.iplayer.data.media.LrcParser
 import com.imadlabs.iplayer.data.media.Lyrics
@@ -70,5 +71,13 @@ class MediaParsingTest {
         assertTrue(VoiceNotes.isVoiceNoteFolder("$root/Music/WA Call Recordings/WhatsApp"))
         assertFalse(VoiceNotes.isVoiceNoteFolder("$root/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Audio"))
         assertFalse(VoiceNotes.isVoiceNoteFolder("$root/Music/Voice Notes Album"))
+    }
+
+    @Test fun shortAudioFilter() {
+        val f = AudioFilter(hideVoiceNotes = false, hideShortAudio = true)
+        assertTrue(f.hides("/storage/emulated/0/WhatsApp Audio", 12_000))
+        assertFalse(f.hides("/storage/emulated/0/Music", 180_000))
+        assertFalse(f.hides("/storage/emulated/0/Music", 0)) // unknown length is kept
+        assertFalse(AudioFilter(false, false).hides("/x", 5_000))
     }
 }

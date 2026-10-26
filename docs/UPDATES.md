@@ -1,7 +1,9 @@
 # Update checking
 
-iPlayer checks for a newer version at most once per launch, in the background, and only if
-**Settings › Updates › Check for updates on launch** is on. Nothing is downloaded or installed
+iPlayer checks for a newer version each time it is opened or brought back to the foreground
+(at most once every two minutes), in the background, and only if
+**Settings › Updates › Check for updates on launch** is on. When a newer version exists it shows
+the update popup with the changelog; **Update** downloads the APK inside the app with progress. Nothing is downloaded or installed
 without the user tapping **Update**, and Android always shows its own install confirmation.
 
 ## Endpoint
@@ -52,7 +54,7 @@ Rules enforced by `ManifestParser` (see `UpdatePolicyTest`):
 - Every URL must be HTTPS on a trusted host; checksums must be 64 hex characters; sizes must be
   positive and at most 400 MB; changelog is capped at 50 lines of 500 characters.
 - The response is capped at 64 KB, the request times out after 5 s connect / 8 s read, and the
-  last good result is cached for one hour and shown offline.
+  last good result is kept and shown when the device is offline.
 
 ## Verification before install (direct build)
 

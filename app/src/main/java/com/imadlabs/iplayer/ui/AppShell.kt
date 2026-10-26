@@ -1,9 +1,18 @@
 package com.imadlabs.iplayer.ui
 
 import android.net.Uri
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -38,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -67,6 +77,7 @@ import com.imadlabs.iplayer.ui.settings.EqualizerScreen
 import com.imadlabs.iplayer.ui.settings.SettingsCategoryScreen
 import com.imadlabs.iplayer.ui.settings.SettingsScreen
 import com.imadlabs.iplayer.ui.startup.StartupDialogsHost
+import com.imadlabs.iplayer.ui.theme.LocalImadExtras
 import com.imadlabs.iplayer.ui.videos.ShowScreen
 import com.imadlabs.iplayer.ui.videos.VideosScreen
 
@@ -199,11 +210,46 @@ private fun NavHostController.navigateTopLevel(route: String) = navigate(route) 
     restoreState = true
 }
 
+private const val SLIDE_MS = 300
+private const val FADE_MS = 220
+
 @Composable
 private fun AppNavHost(nav: NavHostController) {
     val open: (String) -> Unit = { nav.navigate(it) }
     val back: () -> Unit = { nav.popBackStack() }
-    NavHost(nav, startDestination = Routes.HOME) {
+    val animate = LocalImadExtras.current.animations
+    fun AnimatedContentTransitionScope<NavBackStackEntry>.tabSwitch() =
+        topLevel.any { it.route == initialState.destination.route } && topLevel.any { it.route == targetState.destination.route }
+    // Tabs cross-fade; deeper screens use a short shared-axis slide. "Animations" off disables both.
+    NavHost(
+        nav, startDestination = Routes.HOME,
+        enterTransition = {
+            when {
+                !animate -> EnterTransition.None
+                tabSwitch() -> fadeIn(tween(FADE_MS, easing = LinearOutSlowInEasing))
+                else -> slideInHorizontally(tween(SLIDE_MS, easing = FastOutSlowInEasing)) { it / 10 } +
+                    fadeIn(tween(SLIDE_MS, delayMillis = 40, easing = LinearOutSlowInEasing))
+            }
+        },
+        exitTransition = {
+            when {
+                !animate -> ExitTransition.None
+                tabSwitch() -> fadeOut(tween(FADE_MS / 2, easing = FastOutLinearInEasing))
+                else -> slideOutHorizontally(tween(SLIDE_MS, easing = FastOutSlowInEasing)) { -it / 10 } +
+                    fadeOut(tween(SLIDE_MS / 2, easing = FastOutLinearInEasing))
+            }
+        },
+        popEnterTransition = {
+            if (!animate) EnterTransition.None
+            else slideInHorizontally(tween(SLIDE_MS, easing = FastOutSlowInEasing)) { -it / 10 } +
+                fadeIn(tween(SLIDE_MS, delayMillis = 40, easing = LinearOutSlowInEasing))
+        },
+        popExitTransition = {
+            if (!animate) ExitTransition.None
+            else slideOutHorizontally(tween(SLIDE_MS, easing = FastOutSlowInEasing)) { it / 10 } +
+                fadeOut(tween(SLIDE_MS / 2, easing = FastOutLinearInEasing))
+        },
+    ) {
         composable(Routes.HOME) { HomeScreen(open) }
         composable(Routes.VIDEOS) { VideosScreen(open) }
         composable(Routes.MUSIC) { MusicScreen(open) }

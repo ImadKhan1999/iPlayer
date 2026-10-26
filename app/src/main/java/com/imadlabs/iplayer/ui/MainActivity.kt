@@ -1,6 +1,7 @@
 package com.imadlabs.iplayer.ui
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -21,6 +22,7 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        requestHighestRefreshRate()
         val container = (application as IPlayerApp).container
         handleIntent(intent)
         container.updates.checkOnStartup()
@@ -38,6 +40,22 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handleIntent(intent)
+    }
+
+    /**
+     * Some OEM builds cap apps at 60 Hz unless they ask for more. Request the fastest mode at the
+     * current resolution so scrolling and transitions use the panel's full refresh rate.
+     */
+    private fun requestHighestRefreshRate() {
+        val display = (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) display else null)
+            ?: @Suppress("DEPRECATION") windowManager.defaultDisplay
+        val current = display.mode
+        val best = display.supportedModes
+            .filter { it.physicalWidth == current.physicalWidth && it.physicalHeight == current.physicalHeight }
+            .maxByOrNull { it.refreshRate } ?: return
+        if (best.modeId != window.attributes.preferredDisplayModeId) {
+            window.attributes = window.attributes.also { it.preferredDisplayModeId = best.modeId }
+        }
     }
 
     private fun handleIntent(intent: Intent?) {

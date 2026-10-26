@@ -101,6 +101,12 @@ fun HomeScreen(onOpen: (String) -> Unit) {
     }
     val recentVideos = remember(library) { library.videos.sortedByDescending { it.dateAddedSec }.take(15) }
     val recentAudio = remember(records) { records.filter { !it.isVideo }.take(15) }
+    val folders by container.library.folders.collectAsStateWithLifecycle()
+    // Video folders, newest activity first; each shows its most recently added video as the cover.
+    val videoFolders = remember(folders) {
+        folders.mapNotNull { f -> f.videos.maxByOrNull { it.dateAddedSec }?.let { latest -> Triple(f, latest, f.videos.size) } }
+            .sortedByDescending { it.second.dateAddedSec }
+    }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scroll.nestedScrollConnection),
@@ -143,6 +149,12 @@ fun HomeScreen(onOpen: (String) -> Unit) {
                             }
                         }
                     }
+                }
+            }
+            if (videoFolders.isNotEmpty()) {
+                item { SectionHeader("Video folders") }
+                items(videoFolders, key = { "folder:" + it.first.path }) { (f, latest, count) ->
+                    FolderRow(f.name, count, latest, settings.showThumbnails) { onOpen(Routes.folder(f.path)) }
                 }
             }
             if (recentAudio.isNotEmpty()) {
@@ -257,5 +269,22 @@ private fun AudioCard(title: String, artist: String?, uri: Uri, onClick: () -> U
             modifier = Modifier.padding(top = 6.dp))
         if (artist != null) Text(artist, style = MaterialTheme.typography.bodySmall, maxLines = 1,
             color = MaterialTheme.colorScheme.onSurfaceVariant, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+@Composable
+private fun FolderRow(name: String, count: Int, cover: VideoItem, thumbs: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.width(120.dp).aspectRatio(16 / 9f).clip(RoundedCornerShape(10.dp))) {
+            MediaArtwork(MediaThumb(cover.uri, true), Modifier.fillMaxSize(), showThumbnail = thumbs)
+        }
+        Column(Modifier.padding(start = 14.dp).weight(1f)) {
+            Text(name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(if (count == 1) "1 video" else "$count videos", style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }

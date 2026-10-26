@@ -24,8 +24,8 @@ android {
         applicationId = "com.imadlabs.iplayer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 4
-        versionName = "1.0.3"
+        versionCode = 5
+        versionName = "1.0.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Update manifest endpoint. The default points at the asset that the release workflow

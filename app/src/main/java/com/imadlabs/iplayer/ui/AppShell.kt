@@ -204,10 +204,16 @@ private fun NavRail(route: String?, nav: NavHostController) {
     }
 }
 
-private fun NavHostController.navigateTopLevel(route: String) = navigate(route) {
-    popUpTo(graph.findStartDestination().id) { saveState = true }
-    launchSingleTop = true
-    restoreState = true
+private fun NavHostController.navigateTopLevel(route: String) {
+    val start = graph.findStartDestination()
+    // Going home just unwinds the stack. Saving and restoring Home's own state here would bring
+    // back whatever was stacked on top of it (e.g. Videos opened from "All videos").
+    if (route == start.route) { popBackStack(start.id, inclusive = false); return }
+    navigate(route) {
+        popUpTo(start.id) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
+    }
 }
 
 private const val SLIDE_MS = 300
@@ -215,7 +221,7 @@ private const val FADE_MS = 220
 
 @Composable
 private fun AppNavHost(nav: NavHostController) {
-    val open: (String) -> Unit = { nav.navigate(it) }
+    val open: (String) -> Unit = { r -> if (topLevel.any { it.route == r }) nav.navigateTopLevel(r) else nav.navigate(r) }
     val back: () -> Unit = { nav.popBackStack() }
     val animate = LocalImadExtras.current.animations
     fun AnimatedContentTransitionScope<NavBackStackEntry>.tabSwitch() =

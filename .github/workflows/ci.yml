@@ -22,9 +22,20 @@ jobs:
           java-version: "21"
       - uses: gradle/actions/setup-gradle@v4
       - name: Unit tests
-        run: ./gradlew --no-daemon --stacktrace testDirectDebugUnitTest
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew --no-daemon testDirectDebugUnitTest 2>&1 | tee build.log
       - name: Build debug APKs
-        run: ./gradlew --no-daemon assembleDirectDebug assemblePlayDebug
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew --no-daemon assembleDirectDebug assemblePlayDebug 2>&1 | tee -a build.log
+      - name: Compiler errors summary
+        if: failure()
+        shell: bash
+        run: |
+          grep -E "^e: |error:|FAILED|What went wrong" -A3 build.log | grep -v "^\s*at " | head -300 || true
       - name: Lint
         run: ./gradlew --no-daemon lintDirectDebug
         continue-on-error: true

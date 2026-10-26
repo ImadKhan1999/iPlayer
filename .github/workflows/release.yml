@@ -1,0 +1,73 @@
+name: Release
+
+# Builds signed direct-distribution APKs for a v* tag, publishes them with SHA-256 sums and the
+# update manifest that installed copies of iPlayer check. Requires these repository secrets:
+#   IPLAYER_KEYSTORE_BASE64, IPLAYER_KEYSTORE_PASSWORD, IPLAYER_KEY_ALIAS, IPLAYER_KEY_PASSWORD
+# Release notes for the in-app changelog come from docs/changelog/<tag>.txt (one change per line).
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Check signing secrets
+        env:
+          KS: ${{ secrets.IPLAYER_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KS" ]; then echo "::error::Signing secrets are not configured; refusing to publish an unsigned release."; exit 1; fi
+      - name: Decode keystore
+        env:
+          KS: ${{ secrets.IPLAYER_KEYSTORE_BASE64 }}
+        run: echo "$KS" | base64 -d > "$RUNNER_TEMP/iplayer.jks"
+      - name: Read version
+        id: version
+        run: |
+          name=$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts | head -1)
+          code=$(sed -n 's/.*versionCode = \([0-9]*\).*/\1/p' app/build.gradle.kts | head -1)
+          if [ "v$name" != "${GITHUB_REF_NAME}" ]; then echo "::error::Tag ${GITHUB_REF_NAME} does not match versionName $name"; exit 1; fi
+          echo "name=$name" >> "$GITHUB_OUTPUT"; echo "code=$code" >> "$GITHUB_OUTPUT"
+      - name: Unit tests
+        run: ./gradlew --no-daemon testDirectReleaseUnitTest
+      - name: Build signed APKs
+        env:
+          IPLAYER_KEYSTORE_FILE: ${{ runner.temp }}/iplayer.jks
+          IPLAYER_KEYSTORE_PASSWORD: ${{ secrets.IPLAYER_KEYSTORE_PASSWORD }}
+          IPLAYER_KEY_ALIAS: ${{ secrets.IPLAYER_KEY_ALIAS }}
+          IPLAYER_KEY_PASSWORD: ${{ secrets.IPLAYER_KEY_PASSWORD }}
+        run: ./gradlew --no-daemon assembleDirectRelease
+      - name: Collect, checksum and write manifest
+        run: |
+          mkdir dist
+          for f in app/build/outputs/apk/direct/release/*-release.apk; do
+            cp "$f" "dist/iPlayer-${{ steps.version.outputs.name }}-$(basename "$f" | sed 's/^app-direct-//')"
+          done
+          (cd dist && sha256sum *.apk > SHA256SUMS.txt)
+          notes="docs/changelog/${GITHUB_REF_NAME}.txt"
+          [ -f "$notes" ] || echo "Release ${GITHUB_REF_NAME}" > "$notes"
+          python3 scripts/make_update_manifest.py --apk-dir dist \
+            --version-name "${{ steps.version.outputs.name }}" --version-code "${{ steps.version.outputs.code }}" \
+            --base-url "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}" \
+            --release-page "https://github.com/${GITHUB_REPOSITORY}/releases/tag/${GITHUB_REF_NAME}" \
+            --changelog "$notes" > dist/update-manifest.json
+          cat dist/update-manifest.json
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" dist/* --title "iPlayer ${{ steps.version.outputs.name }}" \
+            --notes-file "docs/changelog/${GITHUB_REF_NAME}.txt" --verify-tag
+      - name: Remove keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/iplayer.jks"

@@ -111,6 +111,17 @@ android {
     }
 }
 
+kotlin {
+    compilerOptions {
+        optIn.addAll(
+            "androidx.compose.material3.ExperimentalMaterial3Api",
+            "androidx.compose.foundation.ExperimentalFoundationApi",
+            "androidx.compose.foundation.layout.ExperimentalLayoutApi",
+            "androidx.media3.common.util.UnstableApi",
+        )
+    }
+}
+
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }

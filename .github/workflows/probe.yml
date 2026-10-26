@@ -1,0 +1,14 @@
+name: Probe Google Maven versions
+on:
+  push:
+    paths: ['.github/workflows/probe.yml']
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print latest versions
+        run: |
+          for a in com/android/tools/build/gradle androidx/media3/media3-session androidx/media3/media3-common androidx/compose/compose-bom androidx/room/room-runtime androidx/datastore/datastore-preferences androidx/navigation/navigation-compose androidx/core/core-ktx androidx/activity/activity-compose androidx/lifecycle/lifecycle-runtime-compose androidx/lifecycle/lifecycle-viewmodel-compose androidx/compose/material3/material3 androidx/compose/material3/adaptive/adaptive androidx/compose/material3/material3-adaptive-navigation-suite androidx/core/core-splashscreen androidx/security/security-crypto androidx/work/work-runtime-ktx androidx/compose/material/material-icons-extended androidx/documentfile/documentfile androidx/test/ext/junit androidx/test/core androidx/test/runner androidx/compose/ui/ui-test-junit4 androidx/media/media androidx/appcompat/appcompat androidx/palette/palette-ktx androidx/profileinstaller/profileinstaller; do
+            v=$(curl -s "https://dl.google.com/dl/android/maven2/$a/maven-metadata.xml" | grep -o '<version>[^<]*' | sed 's/<version>//' | grep -v -E 'alpha|beta|rc|dev' | sort -V | tail -4 | tr '\n' ' ')
+            echo "$a => $v"
+          done

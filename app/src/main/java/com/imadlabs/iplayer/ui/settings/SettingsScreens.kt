@@ -249,7 +249,7 @@ private fun LazyListScope.subtitles(s: AppSettings, set: ((AppSettings) -> AppSe
     item { ChoiceRow("Outline", SubtitleOutline.entries, s.subtitleOutline, { it.label }) { v -> set { it.copy(subtitleOutline = v) } } }
     item { SwitchRow("Shadow", null, s.subtitleShadow) { v -> set { it.copy(subtitleShadow = v) } } }
     item {
-        SliderRow("Background opacity", s.subtitleBackgroundOpacity.toFloat(), 0f..255f, 0, "${s.subtitleBackgroundOpacity * 100 / 255}%") { v ->
+        SliderRow("Background opacity", s.subtitleBackgroundOpacity.toFloat(), 0f..100f, 0, "${s.subtitleBackgroundOpacity}%") { v ->
             set { it.copy(subtitleBackgroundOpacity = v.toInt()) }
         }
     }

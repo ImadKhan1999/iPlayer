@@ -21,7 +21,7 @@ object SubtitleMatcher {
                     stem.startsWith("$base.") || stem.startsWith("${base}_") || stem.startsWith("$base ") -> {
                         val tag = stem.substring(base.length + 1)
                         val lang = tag.split('.', '_', ' ', '-').firstOrNull { it.isNotBlank() && it !in noise }
-                        val prefBonus = if (pref.isNotEmpty() && lang != null && languageMatches(lang, pref)) 40 else 0
+                        val prefBonus = if (pref.isNotEmpty() && lang != null && languageMatches(lang, pref)) 30 else 0
                         Match(name, lang, 60 + prefBonus)
                     }
                     else -> null

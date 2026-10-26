@@ -999,6 +999,7 @@ class PlaybackManager(
     // ---------------------------------------------------------------- media session service
 
     /** Binding a controller starts [PlaybackService], which handles notification and foreground state. */
+    @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
     private fun connectSession() {
         if (controllerFuture != null) return
         val token = SessionToken(context, ComponentName(context, PlaybackService::class.java))

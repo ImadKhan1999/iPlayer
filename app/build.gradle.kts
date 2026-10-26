@@ -18,7 +18,7 @@ fun signingValue(key: String, env: String): String? =
 
 android {
     namespace = "com.imadlabs.iplayer"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.imadlabs.iplayer"

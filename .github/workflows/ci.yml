@@ -39,6 +39,25 @@ jobs:
       - name: Lint
         run: ./gradlew --no-daemon lintDirectDebug
         continue-on-error: true
+      - name: Test and lint summary
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY' | tee -a "$GITHUB_STEP_SUMMARY"
+          import glob, xml.etree.ElementTree as ET
+          t = f = e = s = 0
+          for x in glob.glob("app/build/test-results/**/*.xml", recursive=True):
+              r = ET.parse(x).getroot()
+              t += int(r.get("tests", 0)); f += int(r.get("failures", 0)); e += int(r.get("errors", 0)); s += int(r.get("skipped", 0))
+          print(f"Unit tests: {t} run, {f} failed, {e} errors, {s} skipped")
+          for x in glob.glob("app/build/reports/lint-results*.xml"):
+              issues = ET.parse(x).getroot().findall("issue")
+              bad = [i for i in issues if i.get("severity") in ("Error", "Fatal")]
+              print(f"Lint: {len(issues)} issues, {len(bad)} errors")
+              for i in bad[:60]:
+                  loc = i.find("location")
+                  print(f"  {i.get('id')}: {i.get('message')} ({loc.get('file','').split('/app/')[-1] if loc is not None else ''}:{loc.get('line','') if loc is not None else ''})")
+          PY
       - name: Checksums
         run: |
           cd app/build/outputs/apk

@@ -60,6 +60,10 @@ import java.io.FileNotFoundException
 
 data class TrackOption(val id: Int, val name: String)
 
+data class EqualizerCatalog(val bandFrequencies: List<Float>, val presets: List<Preset>) {
+    data class Preset(val name: String, val preamp: Float, val bands: List<Float>)
+}
+
 data class ChapterInfo(val name: String, val startMs: Long)
 
 enum class PlayerStatus { Idle, Opening, Buffering, Ready, Ended, Error }
@@ -818,6 +822,17 @@ class PlaybackManager(
                 db.playbackRecords().upsert(it.copy(audioTrackId = s.selectedAudioTrack, subtitleTrackId = s.selectedSubtitleTrack))
             }
         }
+    }
+
+    /** LibVLC's built-in equalizer presets and band layout (loads the engine's native libraries). */
+    fun equalizerCatalog(): EqualizerCatalog {
+        if (libVlc == null) ensureEngine(settings.current)
+        val bandCount = MediaPlayer.Equalizer.getBandCount()
+        val presets = (0 until MediaPlayer.Equalizer.getPresetCount()).map { i ->
+            val e = MediaPlayer.Equalizer.createFromPreset(i)
+            EqualizerCatalog.Preset(MediaPlayer.Equalizer.getPresetName(i), e.preAmp, (0 until bandCount).map(e::getAmp))
+        }
+        return EqualizerCatalog((0 until bandCount).map(MediaPlayer.Equalizer::getBandFrequency), presets)
     }
 
     private fun applyEqualizer(eq: EqualizerSettings) {

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">iPlayer</string>
+    <string name="developer_name" translatable="false">ImadLabs</string>
+    <string name="playback_channel_name">Playback</string>
+    <string name="open_with_iplayer">Play with iPlayer</string>
+</resources>

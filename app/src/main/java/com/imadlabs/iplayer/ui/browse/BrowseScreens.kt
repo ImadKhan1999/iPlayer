@@ -280,7 +280,7 @@ private fun SourceEditor(existing: NetworkSource?, onDismiss: () -> Unit) {
                         OutlinedTextField(protocol.label, {}, readOnly = true, label = { Text("Protocol") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(protoMenu) },
                             modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth())
-                        androidx.compose.material3.ExposedDropdownMenu(protoMenu, { protoMenu = false }) {
+                        ExposedDropdownMenu(protoMenu, { protoMenu = false }) {
                             NetworkProtocol.entries.forEach { p ->
                                 DropdownMenuItem(text = { Text(p.label) }, onClick = { protocol = p; protoMenu = false })
                             }

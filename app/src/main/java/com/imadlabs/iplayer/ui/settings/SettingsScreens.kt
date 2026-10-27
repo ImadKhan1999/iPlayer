@@ -62,6 +62,7 @@ import com.imadlabs.iplayer.data.settings.AspectMode
 import com.imadlabs.iplayer.data.settings.DecoderMode
 import com.imadlabs.iplayer.data.settings.EndAction
 import com.imadlabs.iplayer.data.settings.OrientationPref
+import com.imadlabs.iplayer.data.settings.PlayerStyle
 import com.imadlabs.iplayer.data.settings.ReplayGainMode
 import com.imadlabs.iplayer.data.settings.StereoMode
 import com.imadlabs.iplayer.data.settings.SubtitleColor
@@ -83,7 +84,7 @@ private data class Category(val key: String, val title: String, val summary: Str
 
 private val categories = listOf(
     Category("playback", "Playback", "Resume, speed, end of file, decoder", Icons.Rounded.PlayCircle),
-    Category("video", "Video", "Aspect ratio, orientation, picture-in-picture", Icons.Rounded.Videocam),
+    Category("video", "Video", "Player style, aspect ratio, orientation, picture-in-picture", Icons.Rounded.Videocam),
     Category("gestures", "Gestures", "Swipes, double tap, pinch, lock", Icons.Rounded.TouchApp),
     Category("audio", "Audio", "Equalizer, ReplayGain, normalizer, focus", Icons.Rounded.Audiotrack),
     Category("subtitles", "Subtitles", "Style, languages, encoding", Icons.Rounded.ClosedCaption),
@@ -173,6 +174,7 @@ private fun LazyListScope.playback(s: AppSettings, set: ((AppSettings) -> AppSet
 
 private fun LazyListScope.video(s: AppSettings, set: ((AppSettings) -> AppSettings) -> Unit) {
     item { ChoiceRow("Default aspect ratio", AspectMode.entries, s.defaultAspect, { it.label }) { v -> set { it.copy(defaultAspect = v) } } }
+    item { ChoiceRow("Player style", PlayerStyle.entries, s.playerStyle, { it.label }) { v -> set { it.copy(playerStyle = v) } } }
     item { ChoiceRow("Screen orientation", OrientationPref.entries, s.orientation, { it.label }) { v -> set { it.copy(orientation = v) } } }
     item { ChoiceRow("Hide controls after", listOf(2, 3, 4, 6, 8, 0), s.controlsTimeoutSec, { if (it == 0) "Never" else "$it seconds" }) { v -> set { it.copy(controlsTimeoutSec = v) } } }
     item { SwitchRow("Show remaining time", "Instead of the total duration", s.showRemainingTime) { v -> set { it.copy(showRemainingTime = v) } } }

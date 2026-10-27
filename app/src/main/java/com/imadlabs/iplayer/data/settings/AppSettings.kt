@@ -23,6 +23,11 @@ enum class OrientationPref(val label: String) {
     Auto("Automatic (by video)"), Sensor("Follow sensor"), Landscape("Landscape"), Portrait("Portrait")
 }
 
+/** Layout of the video player controls. Styles copy layouts only, never another app's branding. */
+enum class PlayerStyle(val label: String) {
+    Default("iPlayer (default)"), Tube("Tube-style")
+}
+
 enum class LibraryLayout { Grid, List }
 
 enum class SortOrder(val label: String) {
@@ -80,6 +85,7 @@ data class AppSettings(
     // Video
     val defaultAspect: AspectMode = AspectMode.Fit,
     val orientation: OrientationPref = OrientationPref.Auto,
+    val playerStyle: PlayerStyle = PlayerStyle.Default,
     val brightnessGesture: Boolean = true,
     val volumeGesture: Boolean = true,
     val seekGesture: Boolean = true,

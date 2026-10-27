@@ -83,6 +83,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.imadlabs.iplayer.data.settings.AspectMode
 import com.imadlabs.iplayer.playback.PlayerEvent
 import com.imadlabs.iplayer.playback.PlayerStatus
+import com.imadlabs.iplayer.data.settings.PlayerStyle
 import com.imadlabs.iplayer.ui.LocalContainer
 import com.imadlabs.iplayer.ui.music.SeekBar
 import com.imadlabs.iplayer.ui.theme.MonoStyle
@@ -108,7 +109,7 @@ data class VideoAdjust(
     val isColorDefault get() = brightness == 0f && contrast == 1f && saturation == 1f
 }
 
-enum class PlayerSheet { None, Tracks, Video, Info, More }
+enum class PlayerSheet { None, Tracks, Video, Info, More, TubeSettings, TubeSpeed }
 
 @Composable
 fun PlayerScreen(
@@ -136,6 +137,12 @@ fun PlayerScreen(
     var adjust by remember(s.item?.key) { mutableStateOf(VideoAdjust()) }
     var boostedFrom by remember { mutableStateOf<Float?>(null) }
     var notice by remember { mutableStateOf<String?>(null) }
+    val tube = settings.playerStyle == PlayerStyle.Tube
+    val activity = context as? PlayerActivity
+    // Tube-style double-tap ripple: consecutive taps on the same side add up.
+    var rippleForward by remember { mutableStateOf<Boolean?>(null) }
+    var rippleSeconds by remember { mutableIntStateOf(0) }
+    var rippleTick by remember { mutableIntStateOf(0) }
 
     fun show(text: String) { feedback = text; feedbackTick++ }
     fun poke() { interaction++; controlsVisible = true }
@@ -148,6 +155,7 @@ fun PlayerScreen(
         }
     }
     LaunchedEffect(feedbackTick) { if (feedback != null) { delay(900); feedback = null } }
+    LaunchedEffect(rippleTick) { if (rippleForward != null) { delay(700); rippleForward = null; rippleSeconds = 0 } }
     LaunchedEffect(controlsVisible, interaction, s.playWhenReady, sheet, seekPreviewMs) {
         val timeout = settings.controlsTimeoutSec
         if (controlsVisible && timeout > 0 && s.playWhenReady && sheet == PlayerSheet.None && seekPreviewMs == null) {
@@ -171,6 +179,7 @@ fun PlayerScreen(
     val currentS by rememberUpdatedState(s)
     val currentSettings by rememberUpdatedState(settings)
     val currentLocked by rememberUpdatedState(locked)
+    val currentTube by rememberUpdatedState(tube)
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         AndroidView(
@@ -184,13 +193,16 @@ fun PlayerScreen(
         if (!inPip) {
             // Gesture layer.
             Box(Modifier.fillMaxSize()
-                .pointerInput(settings.doubleTapSeek, locked) {
+                .pointerInput(settings.doubleTapSeek, locked, tube) {
                     detectTapGestures(
                         onTap = { if (controlsVisible) controlsVisible = false else poke() },
                         onDoubleTap = if (!locked && settings.doubleTapSeek) { off ->
                             val forward = off.x > size.width / 2
                             pm.seekBy(if (forward) seekStepMs else -seekStepMs)
-                            show(if (forward) "+${settings.seekIntervalSec}s" else "−${settings.seekIntervalSec}s")
+                            if (tube) {
+                                rippleSeconds = if (rippleForward == forward) rippleSeconds + settings.seekIntervalSec else settings.seekIntervalSec
+                                rippleForward = forward; rippleTick++
+                            } else show(if (forward) "+${settings.seekIntervalSec}s" else "−${settings.seekIntervalSec}s")
                         } else null,
                         onLongPress = if (!locked && settings.longPressSpeed) { _ ->
                             if (currentS.playWhenReady) {
@@ -209,7 +221,7 @@ fun PlayerScreen(
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
                         val slop = viewConfiguration.touchSlop
-                        var mode = 0 // 0 undecided, 1 seek, 2 brightness, 3 volume, 4 pinch
+                        var mode = 0 // 0 undecided, 1 seek, 2 brightness, 3 volume, 4 pinch, 5 full screen swipe
                         var total = Offset.Zero
                         var seekTarget = 0L
                         val startPos = currentS.positionMs
@@ -246,6 +258,8 @@ fun PlayerScreen(
                             if (mode == 0 && hypot(total.x, total.y) > slop) {
                                 mode = when {
                                     abs(total.x) > abs(total.y) -> if (sett.seekGesture && currentS.seekable && currentS.durationMs > 0) 1 else -1
+                                    // Tube style: the middle third swipes in and out of full screen.
+                                    currentTube && down.position.x in size.width / 3f..size.width * 2f / 3f -> 5
                                     down.position.x < size.width / 2 -> if (sett.brightnessGesture) 2 else -1
                                     else -> if (sett.volumeGesture) 3 else -1
                                 }
@@ -271,9 +285,19 @@ fun PlayerScreen(
                                     show("Volume ${(volumeAcc / maxVolume * 100).roundToInt()}%")
                                     change.consume()
                                 }
+                                5 -> change.consume()
                             }
                         }
                         if (mode == 1) { pm.seekTo(seekTarget); seekPreviewMs = null }
+                        if (mode == 5 && abs(total.y) > size.height / 8f) {
+                            val full = activity?.fullscreen == true
+                            when {
+                                total.y < 0 -> if (!full) activity?.toggleFullscreen()
+                                full -> activity?.toggleFullscreen()
+                                pipSupported -> onEnterPip()
+                                else -> onClose()
+                            }
+                        }
                     }
                 })
         }
@@ -286,6 +310,8 @@ fun PlayerScreen(
                     modifier = Modifier.padding(top = 8.dp))
             }
         }
+
+        if (!inPip) rippleForward?.let { TubeSeekRipple(it, rippleSeconds) }
 
         // Gesture feedback.
         feedback?.let {
@@ -311,8 +337,18 @@ fun PlayerScreen(
                     RoundButton(Icons.Rounded.Lock, "Unlock screen") { locked = false; poke(); show("Unlocked") }
                 }
             } else {
+                if (tube && !controlsVisible && activity?.fullscreen != true) {
+                    TubeMiniProgress(s.positionMs, s.durationMs, Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.systemBars))
+                }
                 AnimatedVisibility(controlsVisible, Modifier.fillMaxSize(), enter = fadeIn(), exit = fadeOut()) {
-                    Controls(
+                    if (tube) TubeControls(
+                        onClose = onClose,
+                        onSheet = { sheet = it; poke() },
+                        fullscreen = activity?.fullscreen == true,
+                        onFullscreen = { activity?.toggleFullscreen(); poke() },
+                        onScrub = { seekPreviewMs = it },
+                        onInteract = ::poke,
+                    ) else Controls(
                         onClose = onClose,
                         onSheet = { sheet = it; poke() },
                         onLock = { locked = true; poke(); show("Locked") },
@@ -335,6 +371,10 @@ fun PlayerScreen(
         PlayerSheet.Video -> VideoSheet(adjust, textureOutput, { adjust = it }) { sheet = PlayerSheet.None }
         PlayerSheet.Info -> InfoSheet { sheet = PlayerSheet.None }
         PlayerSheet.More -> MoreSheet(onOpen = { sheet = it }) { sheet = PlayerSheet.None }
+        PlayerSheet.TubeSettings -> TubeSettingsSheet(onOpen = { sheet = it }, onLock = { sheet = PlayerSheet.None; locked = true; poke(); show("Locked") }) {
+            sheet = PlayerSheet.None
+        }
+        PlayerSheet.TubeSpeed -> TubeSpeedSheet { sheet = PlayerSheet.None }
     }
 }
 

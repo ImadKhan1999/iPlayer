@@ -68,6 +68,7 @@ class SettingsRepository(context: Context, scope: CoroutineScope) {
         val bgVideoAudio = booleanPreferencesKey("bg_video_audio")
         val aspect = stringPreferencesKey("aspect")
         val orientation = stringPreferencesKey("orientation")
+        val playerStyle = stringPreferencesKey("player_style")
         val gBrightness = booleanPreferencesKey("g_brightness")
         val gVolume = booleanPreferencesKey("g_volume")
         val gSeek = booleanPreferencesKey("g_seek")
@@ -140,6 +141,7 @@ class SettingsRepository(context: Context, scope: CoroutineScope) {
             backgroundVideoAudio = this[K.bgVideoAudio] ?: d.backgroundVideoAudio,
             defaultAspect = enum(K.aspect, d.defaultAspect),
             orientation = enum(K.orientation, d.orientation),
+            playerStyle = enum(K.playerStyle, d.playerStyle),
             brightnessGesture = this[K.gBrightness] ?: d.brightnessGesture,
             volumeGesture = this[K.gVolume] ?: d.volumeGesture,
             seekGesture = this[K.gSeek] ?: d.seekGesture,
@@ -210,6 +212,7 @@ class SettingsRepository(context: Context, scope: CoroutineScope) {
         this[K.bgVideoAudio] = s.backgroundVideoAudio
         this[K.aspect] = s.defaultAspect.name
         this[K.orientation] = s.orientation.name
+        this[K.playerStyle] = s.playerStyle.name
         this[K.gBrightness] = s.brightnessGesture
         this[K.gVolume] = s.volumeGesture
         this[K.gSeek] = s.seekGesture

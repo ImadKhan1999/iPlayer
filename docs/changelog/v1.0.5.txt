@@ -1,0 +1,4 @@
+Checks for updates every time iPlayer is opened and shows the update popup; the download and install continue in the app
+Player opens with the status and navigation bars visible; the new full-screen button hides them
+Short audio clips (under 30 seconds) are hidden from the music library by default (Settings > Library)
+Asks the display for its highest refresh rate more reliably

@@ -1,0 +1,5 @@
+First public release of iPlayer by ImadLabs
+Video and music playback powered by LibVLC with hardware and software decoding
+Subtitles, audio tracks, gestures, picture-in-picture and background audio
+Music library with albums, artists, genres, playlists, equalizer and lyrics
+Network streams and SMB, FTP, SFTP, NFS and UPnP browsing

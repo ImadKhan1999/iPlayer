@@ -1,0 +1,2 @@
+WhatsApp voice notes and call recordings are no longer listed in the music library (Settings > Library)
+Fixed a crash when starting playback (media session setup)

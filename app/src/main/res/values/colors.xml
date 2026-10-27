@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ImadLabs brand tokens (Graphics/brand/colors/tokens.json) -->
+    <color name="imad_deep_void">#FF070B14</color>
+    <color name="imad_light_bg">#FFF8FAFC</color>
+    <color name="imad_cyber_mint">#FF00F5A0</color>
+    <color name="imad_cobalt">#FF0066FF</color>
+    <color name="window_background">#FFF8FAFC</color>
+    <color name="splash_background">#FF070B14</color>
+</resources>

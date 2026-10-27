@@ -1,0 +1,4 @@
+Smoother screen transitions: short slides between screens and quick cross-fades between tabs (off with Settings > Appearance > Animations)
+Uses the display's highest refresh rate (for example 120 Hz) instead of being held at 60 Hz on some phones
+WhatsApp voice notes and call recordings are no longer listed in the music library (Settings > Library)
+Fixed a crash when starting playback (media session setup)

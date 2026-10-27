@@ -1,0 +1,4 @@
+New player style: Settings > Video > Player style > Tube-style gives the familiar mobile video-site layout
+Tube-style: centred previous / play / next, red seek bar, time at bottom-left, full screen at bottom-right, captions and settings at top-right
+Tube-style: double-tap ripples that add up the seconds, swipe up in the middle for full screen and swipe down to exit, settings list with speed, captions, loop and more
+The default iPlayer layout is unchanged and stays the default

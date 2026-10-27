@@ -43,7 +43,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import coil3.compose.SubcomposeAsyncImage
+import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.imadlabs.iplayer.ui.theme.BadgeStyle
 import com.imadlabs.iplayer.ui.theme.ImadColors
@@ -126,15 +126,17 @@ fun MediaArtwork(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f), modifier = Modifier.size(28.dp))
         }
     }
+    // The placeholder is drawn underneath and the image on top once decoded. AsyncImage avoids
+    // the per-item subcomposition that SubcomposeAsyncImage costs in long lists.
     Box(modifier.clip(shape)) {
-        if (thumb == null || !showThumbnail) placeholder() else {
-            SubcomposeAsyncImage(
-                model = ImageRequest.Builder(LocalContext.current).data(thumb).build(),
+        placeholder()
+        if (thumb != null && showThumbnail) {
+            val context = LocalContext.current
+            AsyncImage(
+                model = remember(thumb) { ImageRequest.Builder(context).data(thumb).build() },
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
-                loading = { placeholder() },
-                error = { placeholder() },
             )
         }
     }

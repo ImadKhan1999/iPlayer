@@ -120,6 +120,14 @@ fun MusicScreen(onOpen: (String) -> Unit) {
     var searching by rememberSaveable { mutableStateOf(false) }
 
     val byUri = remember(library) { library.audio.associateBy { it.uri.toString() } }
+    // Sorting and grouping thousands of tracks is kept out of recomposition.
+    val songs = remember(library, settings.musicSort) { library.music.sortedBy(settings.musicSort) }
+    val added = remember(library) { library.music.sortedByDescending { it.dateAddedSec }.take(200) }
+    val audioFolders = remember(library) {
+        library.audio.groupBy { it.folder }.map { (path, list) ->
+            Triple(path.substringAfterLast('/').ifBlank { path }, "${list.size} files · $path", Routes.folder(path))
+        }.sortedBy { it.first.lowercase() }
+    }
     fun filter(list: List<AudioItem>) = if (query.isBlank()) list else list.filter {
         it.title.contains(query, true) || it.artist.contains(query, true) || it.album.contains(query, true)
     }
@@ -141,7 +149,7 @@ fun MusicScreen(onOpen: (String) -> Unit) {
                 MusicTab.entries.forEach { t -> Tab(selected = tab == t, onClick = { tab = t }, text = { Text(t.label) }) }
             }
             when (tab) {
-                MusicTab.Songs -> SongList(filter(library.music).sortedBy(settings.musicSort), "No songs yet", onOpen, showShuffle = true)
+                MusicTab.Songs -> SongList(remember(songs, query) { filter(songs) }, "No songs yet", onOpen, showShuffle = true)
                 MusicTab.Albums -> {
                     val list = albums.filter { query.isBlank() || it.name.contains(query, true) || it.artist.contains(query, true) }
                     if (list.isEmpty()) EmptyState(Icons.Rounded.LibraryMusic, "No albums", "Albums are built from your music's tags.")
@@ -162,11 +170,9 @@ fun MusicScreen(onOpen: (String) -> Unit) {
                 }, Icons.Rounded.Person, onOpen)
                 MusicTab.Genres -> GroupList(genres.map { Triple(it.name, "${it.tracks.size} songs", Routes.genre(it.name)) },
                     Icons.Rounded.LibraryMusic, onOpen)
-                MusicTab.Folders -> GroupList(library.audio.groupBy { it.folder }.map { (path, list) ->
-                    Triple(path.substringAfterLast('/').ifBlank { path }, "${list.size} files · $path", Routes.folder(path))
-                }.sortedBy { it.first.lowercase() }, Icons.Rounded.Folder, onOpen)
+                MusicTab.Folders -> GroupList(audioFolders, Icons.Rounded.Folder, onOpen)
                 MusicTab.Recent -> SongList(filter(recent.filter { !it.isVideo }.mapNotNull { byUri[it.uri] }), "Nothing played yet", onOpen)
-                MusicTab.Added -> SongList(filter(library.music.sortedByDescending { it.dateAddedSec }.take(200)), "No music yet", onOpen)
+                MusicTab.Added -> SongList(remember(added, query) { filter(added) }, "No music yet", onOpen)
                 MusicTab.Favorites -> SongList(filter(favs.filter { !it.isVideo }.mapNotNull { byUri[it.uri] }),
                     "Tap ⋮ › Add to favorites on any song", onOpen)
                 MusicTab.MostPlayed -> SongList(filter(most.mapNotNull { byUri[it.uri] }), "Play some music to see it here", onOpen)

@@ -6,7 +6,9 @@ import com.imadlabs.iplayer.data.db.ExcludedFolder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -26,7 +28,7 @@ data class LibrarySnapshot(
     val videos: List<VideoItem> = emptyList(),
     val audio: List<AudioItem> = emptyList(),
 ) {
-    val music: List<AudioItem> get() = audio.filter { it.isMusic || !it.isRecording }
+    val music: List<AudioItem> by lazy { audio.filter { it.isMusic || !it.isRecording } }
 }
 
 /** Library-wide audio filters from Settings › Library. */
@@ -74,7 +76,7 @@ class LibraryRepository(
         fun hidden(folder: String) = paths.any { folder == it || folder.startsWith("$it/") }
         snap.copy(videos = snap.videos.filterNot { hidden(it.folder) },
             audio = snap.audio.filterNot { hidden(it.folder) || filter.hides(it.folder, it.durationMs) })
-    }.stateIn(scope, SharingStarted.Eagerly, LibrarySnapshot())
+    }.flowOn(Dispatchers.Default).stateIn(scope, SharingStarted.Eagerly, LibrarySnapshot())
 
     val albums: StateFlow<List<Album>> = library.map { lib ->
         lib.music.groupBy { it.albumId }.map { (id, tracks) ->
@@ -82,19 +84,19 @@ class LibraryRepository(
             Album(id, sorted.first().album, sorted.first().albumArtist ?: sorted.first().artist,
                 sorted.maxOf { it.year }, sorted)
         }.sortedBy { it.name.lowercase() }
-    }.stateIn(scope, SharingStarted.Lazily, emptyList())
+    }.flowOn(Dispatchers.Default).stateIn(scope, SharingStarted.Lazily, emptyList())
 
     val artists: StateFlow<List<Artist>> = combine(library, albums) { lib, albums ->
         lib.music.groupBy { it.albumArtist ?: it.artist }.map { (name, tracks) ->
             Artist(name, albums.filter { it.artist == name }, tracks.sortedBy { it.title.lowercase() })
         }.sortedBy { it.name.lowercase() }
-    }.stateIn(scope, SharingStarted.Lazily, emptyList())
+    }.flowOn(Dispatchers.Default).stateIn(scope, SharingStarted.Lazily, emptyList())
 
     val genres: StateFlow<List<Genre>> = library.map { lib ->
         lib.music.groupBy { it.genre ?: "Unknown genre" }
             .map { (g, t) -> Genre(g, t.sortedBy { it.title.lowercase() }) }
             .sortedBy { it.name.lowercase() }
-    }.stateIn(scope, SharingStarted.Lazily, emptyList())
+    }.flowOn(Dispatchers.Default).stateIn(scope, SharingStarted.Lazily, emptyList())
 
     val folders: StateFlow<List<MediaFolder>> = library.map { lib ->
         val v = lib.videos.groupBy { it.folder }
@@ -102,7 +104,7 @@ class LibraryRepository(
         (v.keys + a.keys).map { path ->
             MediaFolder(path, path.substringAfterLast('/').ifBlank { path }, v[path].orEmpty(), a[path].orEmpty())
         }.sortedBy { it.name.lowercase() }
-    }.stateIn(scope, SharingStarted.Lazily, emptyList())
+    }.flowOn(Dispatchers.Default).stateIn(scope, SharingStarted.Lazily, emptyList())
 
     val shows: StateFlow<List<ShowGroup>> = combine(library, overrides) { lib, ov ->
         val byUri = ov.associateBy { it.uri }
@@ -121,12 +123,12 @@ class LibraryRepository(
             }
             .filter { it.episodeCount >= 2 }
             .sortedBy { it.name.lowercase() }
-    }.stateIn(scope, SharingStarted.Lazily, emptyList())
+    }.flowOn(Dispatchers.Default).stateIn(scope, SharingStarted.Lazily, emptyList())
 
     /** Duplicate file names across folders, for the "Duplicates" filter. */
     val duplicateNames: StateFlow<Set<String>> = library.map { lib ->
         lib.videos.groupBy { it.displayName.lowercase() }.filterValues { it.size > 1 }.keys
-    }.stateIn(scope, SharingStarted.Lazily, emptySet())
+    }.flowOn(Dispatchers.Default).stateIn(scope, SharingStarted.Lazily, emptySet())
 
     /** Call once storage permission is available. Safe to call repeatedly. */
     fun start() {

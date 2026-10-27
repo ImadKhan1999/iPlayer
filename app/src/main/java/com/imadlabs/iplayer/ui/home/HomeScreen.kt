@@ -101,6 +101,7 @@ fun HomeScreen(onOpen: (String) -> Unit) {
     }
     val recentVideos = remember(library) { library.videos.sortedByDescending { it.dateAddedSec }.take(15) }
     val recentAudio = remember(records) { records.filter { !it.isVideo }.take(15) }
+    val audioByUri = remember(library) { library.audio.associateBy { it.uri.toString() } }
     val folders by container.library.folders.collectAsStateWithLifecycle()
     // Video folders, newest activity first; each shows its most recently added video as the cover.
     val videoFolders = remember(folders) {
@@ -162,7 +163,7 @@ fun HomeScreen(onOpen: (String) -> Unit) {
                 item {
                     LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         items(recentAudio, key = { it.uri }) { r ->
-                            val audio = library.audio.firstOrNull { it.uri.toString() == r.uri }
+                            val audio = audioByUri[r.uri]
                             AudioCard(r.title, audio?.artist, Uri.parse(r.uri)) {
                                 container.play(context, listOf(audio?.toQueueItem() ?: QueueItem(r.uri, r.title, isVideo = false)))
                             }

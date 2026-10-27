@@ -1,5 +1,13 @@
 package com.imadlabs.iplayer.ui.player
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.style.TextOverflow
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import android.net.Uri
@@ -83,28 +91,44 @@ import java.io.File
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PlayerSheetFrame(title: String, onDismiss: () -> Unit, content: @Composable () -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 24.dp)) {
-            Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 8.dp))
-            content()
+    // Compact sheets: they sit over the video, so keep them narrow, short and dense.
+    val maxHeight = (LocalConfiguration.current.screenHeightDp * 0.7f).dp
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        sheetMaxWidth = 520.dp,
+        dragHandle = {
+            Box(Modifier.padding(vertical = 8.dp).size(width = 32.dp, height = 4.dp).clip(RoundedCornerShape(2.dp))
+                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)))
+        },
+    ) {
+        CompositionLocalProvider(
+            LocalMinimumInteractiveComponentSize provides 40.dp,
+            LocalTextStyle provides MaterialTheme.typography.bodyMedium,
+        ) {
+            Column(Modifier.fillMaxWidth().heightIn(max = maxHeight).verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp).padding(bottom = 12.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 4.dp))
+                content()
+            }
         }
     }
 }
 
 @Composable
 private fun SheetHeader(text: String) {
-    Text(text, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
+    Text(text, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(top = 10.dp, bottom = 2.dp))
 }
 
 @Composable
 private fun TrackList(tracks: List<TrackOption>, selected: Int, empty: String, onSelect: (Int) -> Unit) {
     if (tracks.isEmpty()) Text(empty, color = MaterialTheme.colorScheme.onSurfaceVariant)
     tracks.forEach { t ->
-        Row(Modifier.fillMaxWidth().selectable(t.id == selected, role = Role.RadioButton) { onSelect(t.id) }.padding(vertical = 6.dp),
+        Row(Modifier.fillMaxWidth().selectable(t.id == selected, role = Role.RadioButton) { onSelect(t.id) }.padding(vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically) {
             RadioButton(t.id == selected, null)
-            Text(t.name, Modifier.padding(start = 12.dp))
+            Text(t.name, Modifier.padding(start = 10.dp), maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
     }
 }

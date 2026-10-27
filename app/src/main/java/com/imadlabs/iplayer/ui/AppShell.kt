@@ -45,6 +45,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
@@ -78,6 +79,7 @@ import com.imadlabs.iplayer.ui.settings.SettingsCategoryScreen
 import com.imadlabs.iplayer.ui.settings.SettingsScreen
 import com.imadlabs.iplayer.ui.startup.StartupDialogsHost
 import com.imadlabs.iplayer.ui.theme.LocalImadExtras
+import com.imadlabs.iplayer.util.DeviceTier
 import com.imadlabs.iplayer.ui.videos.ShowScreen
 import com.imadlabs.iplayer.ui.videos.VideosScreen
 
@@ -224,6 +226,9 @@ private fun AppNavHost(nav: NavHostController) {
     val open: (String) -> Unit = { r -> if (topLevel.any { it.route == r }) nav.navigateTopLevel(r) else nav.navigate(r) }
     val back: () -> Unit = { nav.popBackStack() }
     val animate = LocalImadExtras.current.animations
+    // Low-end devices get a short cross-fade instead of slide + fade.
+    val context = LocalContext.current
+    val lite = remember { DeviceTier.isLowEnd(context) }
     fun AnimatedContentTransitionScope<NavBackStackEntry>.tabSwitch() =
         topLevel.any { it.route == initialState.destination.route } && topLevel.any { it.route == targetState.destination.route }
     // Tabs cross-fade; deeper screens use a short shared-axis slide. "Animations" off disables both.
@@ -232,7 +237,7 @@ private fun AppNavHost(nav: NavHostController) {
         enterTransition = {
             when {
                 !animate -> EnterTransition.None
-                tabSwitch() -> fadeIn(tween(FADE_MS, easing = LinearOutSlowInEasing))
+                lite || tabSwitch() -> fadeIn(tween(FADE_MS, easing = LinearOutSlowInEasing))
                 else -> slideInHorizontally(tween(SLIDE_MS, easing = FastOutSlowInEasing)) { it / 10 } +
                     fadeIn(tween(SLIDE_MS, delayMillis = 40, easing = LinearOutSlowInEasing))
             }
@@ -240,18 +245,20 @@ private fun AppNavHost(nav: NavHostController) {
         exitTransition = {
             when {
                 !animate -> ExitTransition.None
-                tabSwitch() -> fadeOut(tween(FADE_MS / 2, easing = FastOutLinearInEasing))
+                lite || tabSwitch() -> fadeOut(tween(FADE_MS / 2, easing = FastOutLinearInEasing))
                 else -> slideOutHorizontally(tween(SLIDE_MS, easing = FastOutSlowInEasing)) { -it / 10 } +
                     fadeOut(tween(SLIDE_MS / 2, easing = FastOutLinearInEasing))
             }
         },
         popEnterTransition = {
             if (!animate) EnterTransition.None
+            else if (lite) fadeIn(tween(FADE_MS, easing = LinearOutSlowInEasing))
             else slideInHorizontally(tween(SLIDE_MS, easing = FastOutSlowInEasing)) { -it / 10 } +
                 fadeIn(tween(SLIDE_MS, delayMillis = 40, easing = LinearOutSlowInEasing))
         },
         popExitTransition = {
             if (!animate) ExitTransition.None
+            else if (lite) fadeOut(tween(FADE_MS / 2, easing = FastOutLinearInEasing))
             else slideOutHorizontally(tween(SLIDE_MS, easing = FastOutSlowInEasing)) { it / 10 } +
                 fadeOut(tween(SLIDE_MS / 2, easing = FastOutLinearInEasing))
         },

@@ -1,0 +1,3 @@
+Smoother on slower phones: library sorting and grouping moved off the main thread, lighter thumbnails in lists
+Low-memory devices get quicker fade transitions and no image fades; capable phones keep the full animations
+Audio, subtitle and other player panels are more compact
